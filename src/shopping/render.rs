@@ -220,16 +220,18 @@ fn render_html(list: &ShoppingList, opts: &RenderOpts<'_>) -> String {
                     esc(&item.notes.join("; "))
                 )
             };
+            // Use real Unicode superscripts here — wrapping in `<sup>` would
+            // normally do the same job, but the parent `<label>` is `display:
+            // flex` so flex layout strips `vertical-align: super` and the
+            // numerals end up on the baseline. Unicode characters render as
+            // proper superscripts regardless of layout context.
             let sup = if multi_source {
                 let indices = item_indices(item, &src_idx);
-                if indices.is_empty() {
+                let s = unicode_superscript(&indices);
+                if s.is_empty() {
                     String::new()
                 } else {
-                    let mut s = String::new();
-                    for n in indices {
-                        write!(s, r#" <sup class="srcref">{n}</sup>"#).ok();
-                    }
-                    s
+                    format!(r#" <span class="srcref">{}</span>"#, esc(&s))
                 }
             } else {
                 String::new()

@@ -217,11 +217,11 @@ ul.shopping label { display: flex; align-items: baseline; gap: .55rem; cursor: p
 ul.shopping input[type=checkbox] { transform: scale(1.15); accent-color: var(--accent); }
 ul.shopping strong { font-variant-numeric: tabular-nums; }
 .warn { color: #d4810b; cursor: help; }
-sup.srcref {
+.srcref {
   color: var(--muted);
-  font-size: .7em;
   margin-left: .15em;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 ol.sources {
   color: var(--muted);
