@@ -56,6 +56,9 @@ pub fn page(layout: Layout, body: &str) -> String {
 <main>
 {body}
 </main>
+<footer class="app">
+  Served by <a href="https://github.com/justinabrahms/recipe-server" rel="noopener">recipe-server</a> by <a href="https://github.com/justinabrahms" rel="noopener">@justinabrahms</a>.
+</footer>
 <script src="{js}" defer></script>
 </body>
 </html>

@@ -50,6 +50,19 @@ header.app a {
   font-weight: 600;
 }
 
+footer.app {
+  max-width: 720px;
+  margin: 3rem auto 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: .85rem;
+  color: var(--muted);
+  text-align: center;
+}
+footer.app a { color: var(--muted); }
+footer.app a:hover { color: var(--accent); }
+@media print { footer.app { display: none; } }
+
 a {
   color: var(--accent);
 }
