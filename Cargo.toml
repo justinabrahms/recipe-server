@@ -1,0 +1,60 @@
+[package]
+name = "recipes"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Self-hosted Cooklang recipe viewer with bulk shopping lists and version history"
+license = "MIT"
+authors = ["Justin Abrahms <justin@abrah.ms>"]
+homepage = "https://github.com/justinabrahms/recipe-server"
+repository = "https://github.com/justinabrahms/recipe-server"
+documentation = "https://github.com/justinabrahms/recipe-server#readme"
+readme = "README.md"
+keywords = ["cooklang", "recipes", "shopping-list", "self-hosted", "axum"]
+categories = ["command-line-utilities", "web-programming::http-server"]
+exclude = [
+    "/.github",
+    "/PLAN.md",
+    "/tests/fixtures",
+]
+
+[[bin]]
+name = "recipes"
+path = "src/main.rs"
+
+[dependencies]
+cooklang = "0.18"
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+thiserror = "2"
+walkdir = "2"
+similar = "2"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "sync", "fs", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+axum = "0.8"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "normalize-path"] }
+
+notify = "8"
+notify-debouncer-full = "0.7"
+
+rust-embed = { version = "8", features = ["debug-embed"] }
+mime_guess = "2"
+
+lru = "0.12"
+rand = "0.8"
+
+[dev-dependencies]
+tempfile = "3"
+insta = "1"
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
