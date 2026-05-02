@@ -72,16 +72,25 @@ pub fn page(layout: Layout, body: &str) -> String {
 
 pub fn list_page(layout: Layout, idx: &Index) -> String {
     let mut body = String::new();
+    let fcount = idx.family_count();
+    let extra_versions = idx.recipe_count().saturating_sub(fcount);
+    let recipe_word = if fcount == 1 { "recipe" } else { "recipes" };
+    let versions_note = match extra_versions {
+        0 => String::new(),
+        1 => " (+1 older version)".to_string(),
+        n => format!(" (+{n} older versions)"),
+    };
     write!(
         body,
         r#"<h1>Recipes</h1>
-<p class="muted">{rcount} recipes across {fcount} families.</p>
+<p class="muted">{fcount} {recipe_word}{versions_note}.</p>
 <input id="search" type="search" placeholder="Filter by title, category, ingredient…" autocomplete="off">
 <form id="recipe-list-form" method="post" action="{shopping}">
 <div id="recipe-list">
 "#,
-        rcount = idx.recipe_count(),
-        fcount = idx.family_count(),
+        fcount = fcount,
+        recipe_word = recipe_word,
+        versions_note = versions_note,
         shopping = esc(&layout.url("/shopping")),
     )
     .unwrap();
