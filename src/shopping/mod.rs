@@ -19,11 +19,18 @@ use cooklang::quantity::Value;
 const TRIVIAL_MASS_GRAMS: f64 = 5.0;
 
 /// One recipe selected for the list, with the version+servings the caller wants.
-#[derive(Debug, Clone)]
+///
+/// `multiplier` and `override_servings` are mutually-exclusive scaling controls.
+/// When `override_servings` is set, the recipe is scaled to that absolute
+/// number of servings. When `multiplier` is set, the recipe is scaled to
+/// `declared * multiplier` servings (e.g. "give me 3 batches of this"). If
+/// both are set, `override_servings` wins.
+#[derive(Debug, Clone, Default)]
 pub struct Selection {
     pub slug: String,
     pub version: Option<VersionKey>,
     pub override_servings: Option<u32>,
+    pub multiplier: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -90,7 +97,11 @@ pub fn aggregate(idx: &Index, selections: &[Selection]) -> ShoppingList {
         };
         let recipe = &version.parsed.recipe;
         let declared = declared_servings(recipe).max(1);
-        let requested = sel.override_servings.unwrap_or(declared).max(1);
+        let requested = match (sel.override_servings, sel.multiplier) {
+            (Some(s), _) => s.max(1),
+            (None, Some(m)) => declared.saturating_mul(m.max(1)).max(1),
+            (None, None) => declared,
+        };
         let factor = requested as f64 / declared as f64;
         let title = recipe_title(recipe).unwrap_or_else(|| family.base.clone());
 
@@ -349,13 +360,12 @@ pub fn parse_selection(s: &str) -> Selection {
         Selection {
             slug: slug.to_string(),
             version: VersionKey::parse(v),
-            override_servings: None,
+            ..Default::default()
         }
     } else {
         Selection {
             slug: s.to_string(),
-            version: None,
-            override_servings: None,
+            ..Default::default()
         }
     }
 }

@@ -212,6 +212,46 @@ async fn public_url_overrides_request_headers() {
 }
 
 #[tokio::test]
+async fn multiplier_via_form_repeats_batches() {
+    let app = make_app().await;
+
+    // ×3 batches of carbonara (declared 2 servings → 6 effective servings)
+    let body = "slugs%5B%5D=carbonara&multiplier%5Bcarbonara%5D=3";
+    let resp = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/shopping")
+                .header("content-type", "application/x-www-form-urlencoded")
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let location = resp
+        .headers()
+        .get("location")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("{location}?format=text"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let bytes = to_bytes(resp.into_body(), 1 << 20).await.unwrap();
+    let text = String::from_utf8_lossy(&bytes);
+    assert!(text.contains("600 g spaghetti"), "got: {text}");
+}
+
+#[tokio::test]
 async fn unknown_token_404() {
     let app = make_app().await;
     let resp = app

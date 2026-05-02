@@ -71,12 +71,60 @@ input[type="search"] {
 }
 
 ul.recipe-list { list-style: none; padding: 0; margin: 0; }
-ul.recipe-list li { padding: .5rem .25rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: .6rem; }
+ul.recipe-list li {
+  padding: .5rem .25rem;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .75rem;
+}
 ul.recipe-list li input[type=checkbox] { transform: scale(1.2); accent-color: var(--accent); }
-ul.recipe-list li .row-title { flex: 1; }
-ul.recipe-list li .row-title a { text-decoration: none; color: var(--fg); }
+ul.recipe-list li .row-title {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  overflow: hidden;
+}
+ul.recipe-list li .row-title a {
+  text-decoration: none;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 ul.recipe-list li .row-title a:hover { text-decoration: underline; }
+ul.recipe-list li .row-title .tag { flex: 0 0 auto; }
 ul.recipe-list li.hidden { display: none; }
+
+.multiplier {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-variant-numeric: tabular-nums;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.multiplier button {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.multiplier button:hover { border-color: var(--accent); color: var(--accent); }
+.multiplier output {
+  min-width: 1.5em;
+  text-align: right;
+  font-weight: 600;
+  color: var(--fg);
+}
 
 .category-group { margin-top: 1.25rem; }
 
@@ -169,6 +217,18 @@ ul.shopping label { display: flex; align-items: baseline; gap: .55rem; cursor: p
 ul.shopping input[type=checkbox] { transform: scale(1.15); accent-color: var(--accent); }
 ul.shopping strong { font-variant-numeric: tabular-nums; }
 .warn { color: #d4810b; cursor: help; }
+sup.srcref {
+  color: var(--muted);
+  font-size: .7em;
+  margin-left: .15em;
+  font-weight: 600;
+}
+ol.sources {
+  color: var(--muted);
+  font-size: .9rem;
+  padding-left: 1.5rem;
+}
+ol.sources li { margin: .15rem 0; }
 
 .diff {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

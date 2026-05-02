@@ -79,7 +79,13 @@ pub struct ShoppingArgs {
     #[arg(long)]
     pub link_base: Option<String>,
 
-    /// Servings overrides, e.g. `--servings carbonara=4,risotto=2`
+    /// Servings overrides (absolute), e.g. `--servings carbonara=4,risotto=2`
     #[arg(long)]
     pub servings: Option<String>,
+
+    /// Repeat-batch multipliers, e.g. `--multiplier overnight-oats=3` adds
+    /// three batches of overnight oats. Multiplied with the recipe's declared
+    /// servings; ignored if --servings sets an absolute count for the same slug.
+    #[arg(long)]
+    pub multiplier: Option<String>,
 }

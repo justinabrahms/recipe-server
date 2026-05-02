@@ -11,12 +11,16 @@ pub fn run(recipes_dir: Option<PathBuf>, args: ShoppingArgs) -> Result<()> {
     let root = config::require_recipes_dir(recipes_dir)?;
     let idx = build_index(&root)?;
 
-    let overrides = parse_servings_overrides(args.servings.as_deref())?;
+    let overrides = parse_pairs(args.servings.as_deref(), "--servings")?;
+    let multipliers = parse_pairs(args.multiplier.as_deref(), "--multiplier")?;
 
     let mut selections: Vec<Selection> = args.recipes.iter().map(|s| parse_selection(s)).collect();
     for sel in &mut selections {
         if let Some(v) = overrides.get(&sel.slug) {
             sel.override_servings = Some(*v);
+        }
+        if let Some(m) = multipliers.get(&sel.slug) {
+            sel.multiplier = Some(*m);
         }
     }
 
@@ -39,7 +43,7 @@ pub fn run(recipes_dir: Option<PathBuf>, args: ShoppingArgs) -> Result<()> {
     Ok(())
 }
 
-fn parse_servings_overrides(s: Option<&str>) -> Result<HashMap<String, u32>> {
+fn parse_pairs(s: Option<&str>, flag: &'static str) -> Result<HashMap<String, u32>> {
     let mut out = HashMap::new();
     let Some(s) = s else { return Ok(out) };
     for pair in s.split(',') {
@@ -49,13 +53,13 @@ fn parse_servings_overrides(s: Option<&str>) -> Result<HashMap<String, u32>> {
         }
         let (slug, count) = pair
             .split_once('=')
-            .ok_or_else(|| anyhow::anyhow!("--servings expects slug=N pairs, got `{pair}`"))?;
+            .ok_or_else(|| anyhow::anyhow!("{flag} expects slug=N pairs, got `{pair}`"))?;
         let count: u32 = count
             .trim()
             .parse()
-            .map_err(|_| anyhow::anyhow!("invalid servings count in `{pair}`"))?;
+            .map_err(|_| anyhow::anyhow!("invalid count in `{pair}` for {flag}"))?;
         if count == 0 {
-            anyhow::bail!("servings must be > 0 in `{pair}`");
+            anyhow::bail!("count must be > 0 in `{pair}` for {flag}");
         }
         out.insert(slug.trim().to_string(), count);
     }

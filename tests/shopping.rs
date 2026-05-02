@@ -12,6 +12,7 @@ fn sel(slug: &str, version: Option<VersionKey>, servings: Option<u32>) -> Select
         slug: slug.into(),
         version,
         override_servings: servings,
+        ..Default::default()
     }
 }
 
@@ -53,6 +54,39 @@ fn aggregates_two_versions_of_same_recipe() {
         "expected 50+60=110g, got {}",
         canonical.amount
     );
+}
+
+#[test]
+fn multiplier_scales_by_batch() {
+    let idx = build_index(&fixtures()).unwrap();
+    let mut s = sel("carbonara", None, None);
+    s.multiplier = Some(3);
+    let list = aggregate(&idx, &[s]);
+    let spaghetti = list
+        .items
+        .iter()
+        .find(|i| i.display_name == "spaghetti")
+        .unwrap();
+    let c = spaghetti.canonical.unwrap();
+    // recipe: 200g spaghetti × 3 batches = 600g
+    assert!((c.amount - 600.0).abs() < 1e-6, "got {}", c.amount);
+}
+
+#[test]
+fn override_servings_wins_over_multiplier() {
+    let idx = build_index(&fixtures()).unwrap();
+    let mut s = sel("carbonara", None, None);
+    s.multiplier = Some(3);
+    s.override_servings = Some(4);
+    let list = aggregate(&idx, &[s]);
+    let spaghetti = list
+        .items
+        .iter()
+        .find(|i| i.display_name == "spaghetti")
+        .unwrap();
+    let c = spaghetti.canonical.unwrap();
+    // override_servings=4 → 200g × (4/2) = 400g; multiplier ignored
+    assert!((c.amount - 400.0).abs() < 1e-6, "got {}", c.amount);
 }
 
 #[test]

@@ -126,10 +126,15 @@ pub fn list_page(layout: Layout, idx: &Index) -> String {
                 let search_text = format!("{} {} {}", f.title, category, ingredient_blob);
                 write!(
                     body,
-                    r#"<li class="recipe" data-search-text="{search}">
+                    r#"<li class="recipe" data-search-text="{search}" data-slug="{slug}">
   <input type="checkbox" name="slugs[]" value="{slug}">
-  <span class="row-title"><a href="{href}">{title}</a></span>
-  <span class="tag">{ver}</span>
+  <span class="row-title"><a href="{href}">{title}</a> <span class="tag">{ver}</span></span>
+  <span class="multiplier" hidden>
+    <button type="button" class="step-down" aria-label="decrease">−</button>
+    <output class="step-value">1</output>×
+    <button type="button" class="step-up" aria-label="increase">+</button>
+    <input type="hidden" name="multiplier[{slug}]" value="1" disabled>
+  </span>
 </li>
 "#,
                     search = esc(&search_text),

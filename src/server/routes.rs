@@ -239,10 +239,11 @@ fn not_found_response(state: &AppState, what: &str) -> Response {
 
 // ---- shopping ----
 
-/// `POST /shopping` accepts form-encoded `slugs[]=foo&slugs[]=bar@v1` and
-/// `servings[<slug>]=N`. We don't care if the encoded keys collide on `slugs[]`
-/// — `serde_urlencoded` collapses to the last value, so we parse the raw body
-/// ourselves.
+/// `POST /shopping` accepts form-encoded `slugs[]=foo&slugs[]=bar@v1`,
+/// optional `servings[<slug>]=N` (absolute), and optional
+/// `multiplier[<slug>]=N` (relative — repeats the recipe N times). We parse
+/// the raw body ourselves because `slugs[]` repeats and stock urlencoded
+/// parsers collapse it to the last value.
 async fn shopping_create(State(state): State<AppState>, body: String) -> Response {
     let parsed = parse_shopping_form(&body);
     if parsed.slugs.is_empty() {
@@ -258,6 +259,9 @@ async fn shopping_create(State(state): State<AppState>, body: String) -> Respons
         if let Some(s) = parsed.servings.get(&sel.slug) {
             sel.override_servings = Some(*s);
         }
+        if let Some(m) = parsed.multipliers.get(&sel.slug) {
+            sel.multiplier = Some(*m);
+        }
     }
 
     let token = state.lists.put(selections);
@@ -268,6 +272,7 @@ async fn shopping_create(State(state): State<AppState>, body: String) -> Respons
 struct ShoppingForm {
     slugs: Vec<String>,
     servings: HashMap<String, u32>,
+    multipliers: HashMap<String, u32>,
 }
 
 fn parse_shopping_form(body: &str) -> ShoppingForm {
@@ -293,6 +298,15 @@ fn parse_shopping_form(body: &str) -> ShoppingForm {
             if let Ok(n) = val.parse::<u32>() {
                 if n > 0 {
                     out.servings.insert(slug.to_string(), n);
+                }
+            }
+        } else if let Some(slug) = key
+            .strip_prefix("multiplier[")
+            .and_then(|s| s.strip_suffix(']'))
+        {
+            if let Ok(n) = val.parse::<u32>() {
+                if n > 1 {
+                    out.multipliers.insert(slug.to_string(), n);
                 }
             }
         }
