@@ -39,6 +39,8 @@ Garlic Bread v1 (×4 servings) — https://recipes.example.com/r/garlic-bread
   list with metric-normalised quantities, sectioned by store aisle.
 - **Apple-Notes-friendly output**: plain text with auto-linkable absolute
   URLs in the footer; ⌘⇧L turns it into a checklist on paste.
+- **Admin preview UI**: `/admin` shows index health, category coverage, and
+  recipe metadata. Each recipe links to a Cooklang editor preview.
 - **Live reload**: edits in the recipes directory take effect without a
   restart (500 ms debounced).
 - **Stateless**: no database, no auth, no JS framework. Authn is the
@@ -68,6 +70,10 @@ recipes serve --recipes-dir /path/to/your/cook/files
 ```
 
 then open <http://127.0.0.1:8080/>.
+
+Admin views live at <http://127.0.0.1:8080/admin/>. The app does not
+protect those routes itself; put auth in front of it with your reverse
+proxy if the server is reachable by anyone else.
 
 ## CLI
 
@@ -179,6 +185,29 @@ Names are case-insensitive; ingredients you don't list go to an "Other"
 bucket at the end. The watcher reloads the file on change.
 
 [aisle-spec]: https://cooklang.org/docs/spec/#shopping-lists
+
+## Admin UI
+
+`GET /admin` renders a small operational view over the current index:
+
+- index build status, root path, and error/warning counts
+- recipe family, version, and category totals
+- category coverage
+- a recipe table with links to the public recipe and editor preview
+- current index issues when parse warnings or errors exist
+
+`GET /admin/r/<slug>/edit` renders an editor preview for the current
+version of one recipe. It shows editable-looking metadata fields, the raw
+Cooklang source, file facts, ingredients, and a rendered step preview.
+
+The editor is deliberately non-mutating right now. The buttons are there
+to shape the UI, but the app does not write `.cook` files or create new
+versions yet. Treat it as a local design surface until save/validate
+endpoints exist.
+
+The admin routes do not implement application-level auth. The intended
+deployment model is still "the reverse proxy owns auth", typically with
+basic auth in Caddy or nginx.
 
 ## Reverse proxy examples
 

@@ -62,6 +62,47 @@ async fn recipe_view_shows_current_version() {
 }
 
 #[tokio::test]
+async fn admin_page_summarizes_index() {
+    let app = make_app().await;
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/admin")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let (status, html) = body_text(resp).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Recipe Admin"));
+    assert!(html.contains("Families"));
+    assert!(html.contains("Spaghetti Carbonara"));
+    assert!(html.contains("Health JSON"));
+    assert!(html.contains("/admin/r/carbonara/edit"));
+}
+
+#[tokio::test]
+async fn admin_recipe_editor_shows_source() {
+    let app = make_app().await;
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .uri("/admin/r/carbonara/edit")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let (status, html) = body_text(resp).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(html.contains("Edit Recipe"));
+    assert!(html.contains("Cooklang source"));
+    assert!(html.contains("Spaghetti Carbonara"));
+    assert!(html.contains("guanciale"));
+}
+
+#[tokio::test]
 async fn recipe_view_specific_version() {
     let app = make_app().await;
     let resp = app

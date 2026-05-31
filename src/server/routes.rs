@@ -36,6 +36,8 @@ pub fn router(index: SharedIndex, base_path: &str, public_url: Option<String>) -
 
     let app = Router::new()
         .route("/", get(home))
+        .route("/admin", get(admin))
+        .route("/admin/r/{slug}/edit", get(admin_recipe_edit))
         .route("/r/{slug}", get(recipe_latest))
         .route("/r/{slug}/v/{version}", get(recipe_version))
         .route("/r/{slug}/history", get(recipe_history))
@@ -77,6 +79,24 @@ fn layout<'a>(state: &'a AppState, title: &'a str) -> Layout<'a> {
 async fn home(State(state): State<AppState>) -> Html<String> {
     let idx = state.index.read().await;
     Html(render::list_page(layout(&state, "All recipes"), &idx))
+}
+
+async fn admin(State(state): State<AppState>) -> Html<String> {
+    let idx = state.index.read().await;
+    Html(render::admin_page(layout(&state, "Admin"), &idx))
+}
+
+async fn admin_recipe_edit(State(state): State<AppState>, Path(slug): Path<String>) -> Response {
+    let idx = state.index.read().await;
+    let slug = Slug::from_base(&slug);
+    let Some(family) = idx.families.get(&slug) else {
+        return not_found_response(&state, &format!("No recipe with slug `{slug}`"));
+    };
+    Html(render::admin_recipe_editor(
+        layout(&state, &format!("Edit {}", family.title)),
+        family,
+    ))
+    .into_response()
 }
 
 async fn recipe_latest(State(state): State<AppState>, Path(slug): Path<String>) -> Response {

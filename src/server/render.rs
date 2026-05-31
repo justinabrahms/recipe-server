@@ -166,6 +166,312 @@ pub fn list_page(layout: Layout, idx: &Index) -> String {
     page(layout, &body)
 }
 
+pub fn admin_page(layout: Layout, idx: &Index) -> String {
+    let mut body = String::new();
+    let family_count = idx.family_count();
+    let version_count = idx.recipe_count();
+    let category_count = idx.families_by_category().len();
+    let issue_count = idx.errors.len() + idx.warnings.len();
+    let last_built = idx
+        .last_built
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| format_datetime(d.as_secs() as i64))
+        .unwrap_or_else(|| "Not built".to_string());
+    let status_class = if idx.errors.is_empty() {
+        "ok"
+    } else {
+        "problem"
+    };
+    let status_label = if idx.errors.is_empty() {
+        "Healthy"
+    } else {
+        "Needs attention"
+    };
+
+    body.push_str("<div class=\"admin-page\">\n");
+    write!(
+        body,
+        r#"<section class="admin-hero">
+  <div>
+    <h1>Recipe Admin</h1>
+    <p class="muted">Index built {last_built} · {root}</p>
+  </div>
+  <div class="admin-actions">
+    <a class="btn" href="{home}">Public list</a>
+    <a class="btn" href="{health}">Health JSON</a>
+  </div>
+</section>
+
+<section class="admin-status {status_class}">
+  <strong>{status_label}</strong>
+  <span>{errors} errors · {warnings} warnings</span>
+</section>
+
+<section class="admin-metrics" aria-label="Recipe index metrics">
+  <div><span>{families}</span><strong>Families</strong></div>
+  <div><span>{versions}</span><strong>Versions</strong></div>
+  <div><span>{categories}</span><strong>Categories</strong></div>
+  <div><span>{issues}</span><strong>Issues</strong></div>
+</section>
+"#,
+        last_built = esc(&last_built),
+        root = esc(&idx.root.display().to_string()),
+        home = esc(&layout.url("/")),
+        health = esc(&layout.url("/health")),
+        status_class = status_class,
+        status_label = status_label,
+        errors = idx.errors.len(),
+        warnings = idx.warnings.len(),
+        families = family_count,
+        versions = version_count,
+        categories = category_count,
+        issues = issue_count,
+    )
+    .unwrap();
+
+    body.push_str("<section class=\"admin-panel\">\n");
+    body.push_str("<h2>Categories</h2>\n");
+    if idx.families.is_empty() {
+        body.push_str("<p class=\"muted\">No recipes indexed.</p>\n");
+    } else {
+        body.push_str("<div class=\"admin-category-grid\">\n");
+        for (category, families) in idx.families_by_category() {
+            let label = if category.is_empty() {
+                "Uncategorised".to_string()
+            } else {
+                category
+            };
+            write!(
+                body,
+                r#"<div>
+  <span>{count}</span>
+  <strong>{label}</strong>
+</div>
+"#,
+                count = families.len(),
+                label = esc(&label),
+            )
+            .unwrap();
+        }
+        body.push_str("</div>\n");
+    }
+    body.push_str("</section>\n");
+
+    body.push_str("<section class=\"admin-panel\">\n");
+    body.push_str("<h2>Recipes</h2>\n");
+    body.push_str("<div class=\"admin-table-wrap\"><table class=\"admin-table\">\n");
+    body.push_str(
+        "<thead><tr><th>Title</th><th>Category</th><th>Current</th><th>Serves</th><th>Ingredients</th><th>Updated</th><th></th></tr></thead>\n<tbody>\n",
+    );
+    for family in idx.families_sorted() {
+        let current = family.current();
+        let recipe = &current.parsed.recipe;
+        let category = if family.category.is_empty() {
+            "Uncategorised".to_string()
+        } else {
+            family.category.clone()
+        };
+        let mtime = current
+            .mtime
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| format_datetime(d.as_secs() as i64))
+            .unwrap_or_else(|| "—".to_string());
+        write!(
+            body,
+            r#"<tr>
+  <td><a href="{href}">{title}</a></td>
+  <td>{category}</td>
+  <td>{version}</td>
+  <td>{servings}</td>
+  <td>{ingredients}</td>
+  <td>{mtime}</td>
+  <td><a class="admin-row-action" href="{edit_href}">Edit</a></td>
+</tr>
+"#,
+            href = esc(&layout.url(&format!("/r/{}", family.slug))),
+            edit_href = esc(&layout.url(&format!("/admin/r/{}/edit", family.slug))),
+            title = esc(&family.title),
+            category = esc(&category),
+            version = esc(&current.key.to_string()),
+            servings = recipe::declared_servings(recipe),
+            ingredients = recipe.ingredients.len(),
+            mtime = esc(&mtime),
+        )
+        .unwrap();
+    }
+    body.push_str("</tbody></table></div>\n");
+    body.push_str("</section>\n");
+
+    if !idx.errors.is_empty() || !idx.warnings.is_empty() {
+        body.push_str("<section class=\"admin-panel\">\n");
+        body.push_str("<h2>Index Issues</h2>\n");
+        body.push_str("<div class=\"admin-table-wrap\"><table class=\"admin-table\">\n");
+        body.push_str(
+            "<thead><tr><th>Level</th><th>Path</th><th>Message</th></tr></thead>\n<tbody>\n",
+        );
+        for e in &idx.errors {
+            write!(
+                body,
+                r#"<tr>
+  <td><span class="tag problem">Error</span></td>
+  <td>{path}</td>
+  <td>{message}</td>
+</tr>
+"#,
+                path = esc(&e.path.display().to_string()),
+                message = esc(&e.message),
+            )
+            .unwrap();
+        }
+        for w in &idx.warnings {
+            write!(
+                body,
+                r#"<tr>
+  <td><span class="tag warn-tag">Warning</span></td>
+  <td>{path}</td>
+  <td>{message}</td>
+</tr>
+"#,
+                path = esc(&w.path.display().to_string()),
+                message = esc(&w.message),
+            )
+            .unwrap();
+        }
+        body.push_str("</tbody></table></div>\n");
+        body.push_str("</section>\n");
+    }
+
+    body.push_str("</div>\n");
+    page(layout, &body)
+}
+
+pub fn admin_recipe_editor(layout: Layout, family: &RecipeFamily) -> String {
+    let current = family.current();
+    let recipe = &current.parsed.recipe;
+    let category = if family.category.is_empty() {
+        "Uncategorised".to_string()
+    } else {
+        family.category.clone()
+    };
+    let mtime = current
+        .mtime
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| format_datetime(d.as_secs() as i64))
+        .unwrap_or_else(|| "—".to_string());
+    let changelog = recipe::recipe_changelog(recipe).unwrap_or_default();
+
+    let mut body = String::new();
+    body.push_str("<div class=\"admin-page editor-page\">\n");
+    write!(
+        body,
+        r#"<section class="admin-hero">
+  <div>
+    <h1>Edit Recipe</h1>
+    <p class="muted">{title} · {path}</p>
+  </div>
+  <div class="admin-actions">
+    <a class="btn" href="{admin}">Admin</a>
+    <a class="btn" href="{public}">Public recipe</a>
+    <a class="btn" href="{history}">History</a>
+  </div>
+</section>
+
+<form class="editor-form">
+  <section class="editor-toolbar">
+    <span class="tag">Local preview</span>
+    <button class="btn primary" type="button">Save</button>
+    <button class="btn" type="button">Validate</button>
+    <button class="btn" type="button">New version</button>
+  </section>
+
+  <section class="editor-meta-grid">
+    <label class="editor-field">
+      <span>Title</span>
+      <input name="title" value="{title}">
+    </label>
+    <label class="editor-field">
+      <span>Slug</span>
+      <input name="slug" value="{slug}">
+    </label>
+    <label class="editor-field">
+      <span>Category</span>
+      <input name="category" value="{category}">
+    </label>
+    <label class="editor-field">
+      <span>Version</span>
+      <input name="version" value="{version}">
+    </label>
+    <label class="editor-field">
+      <span>Servings</span>
+      <input name="servings" value="{servings}">
+    </label>
+    <label class="editor-field">
+      <span>Changelog</span>
+      <input name="changelog" value="{changelog}">
+    </label>
+  </section>
+
+  <section class="editor-grid">
+    <label class="editor-source">
+      <span>Cooklang source</span>
+      <textarea name="source" spellcheck="false">{source}</textarea>
+    </label>
+
+    <aside class="editor-sidebar">
+      <section>
+        <h2>File</h2>
+        <dl class="editor-facts">
+          <div><dt>Path</dt><dd>{path}</dd></div>
+          <div><dt>Updated</dt><dd>{mtime}</dd></div>
+          <div><dt>Ingredients</dt><dd>{ingredients}</dd></div>
+          <div><dt>Steps</dt><dd>{steps}</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Preview</h2>
+        <div class="editor-preview">
+          <h3>Ingredients</h3>
+"#,
+        title = esc(&family.title),
+        path = esc(&current.path.display().to_string()),
+        admin = esc(&layout.url("/admin")),
+        public = esc(&layout.url(&format!("/r/{}", family.slug))),
+        history = esc(&layout.url(&format!("/r/{}/history", family.slug))),
+        slug = esc(family.slug.as_str()),
+        category = esc(&category),
+        version = esc(&current.key.to_string()),
+        servings = recipe::declared_servings(recipe),
+        changelog = esc(&changelog),
+        source = esc(&current.source),
+        mtime = esc(&mtime),
+        ingredients = recipe.ingredients.len(),
+        steps = step_count(recipe),
+    )
+    .unwrap();
+
+    body.push_str("<ul class=\"editor-mini-list\">\n");
+    for ing in recipe.ingredients.iter().filter(|ing| !ing.name.is_empty()) {
+        body.push_str("<li>");
+        body.push_str(&esc(&ing.name));
+        body.push_str("</li>\n");
+    }
+    body.push_str("</ul>\n");
+    body.push_str("<h3>Steps</h3>\n");
+    body.push_str(&render_steps(recipe));
+    body.push_str(
+        r#"        </div>
+      </section>
+    </aside>
+  </section>
+</form>
+</div>
+"#,
+    );
+
+    page(layout, &body)
+}
+
 pub fn recipe_view(layout: Layout, family: &RecipeFamily, version_idx: usize) -> String {
     let v = &family.versions[version_idx];
     let recipe = &v.parsed.recipe;
@@ -532,6 +838,20 @@ fn render_steps(recipe: &Recipe) -> String {
     }
     out.push_str("</ol>\n");
     out
+}
+
+fn step_count(recipe: &Recipe) -> usize {
+    recipe
+        .sections
+        .iter()
+        .map(|section| {
+            section
+                .content
+                .iter()
+                .filter(|content| matches!(content, Content::Step(_)))
+                .count()
+        })
+        .sum()
 }
 
 fn format_quantity(q: &cooklang::quantity::Quantity) -> String {
