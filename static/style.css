@@ -88,7 +88,7 @@ ul.recipe-list li {
   padding: .5rem .25rem;
   border-bottom: 1px solid var(--line);
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: .75rem;
 }
@@ -110,6 +110,29 @@ ul.recipe-list li .row-title a {
 ul.recipe-list li .row-title a:hover { text-decoration: underline; }
 ul.recipe-list li .row-title .tag { flex: 0 0 auto; }
 ul.recipe-list li.hidden { display: none; }
+ul.recipe-list li.made .row-title a {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.made-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--muted);
+  font-size: .85rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.made-toggle.inline { margin-left: .2rem; }
+.made-toggle input {
+  transform: scale(1.05);
+  accent-color: var(--accent);
+}
+.made-toggle input:checked + span {
+  color: var(--fg);
+  font-weight: 600;
+}
 
 .multiplier {
   display: inline-flex;
@@ -279,7 +302,7 @@ ol.sources li { margin: .15rem 0; }
 .meta-line { color: #6f42c1; font-weight: 500; }
 
 @media print {
-  header.app, .shopping-actions, .action-bar, #search { display: none !important; }
+  header.app, .shopping-actions, .action-bar, #search, .made-toggle { display: none !important; }
   ul.shopping input[type=checkbox] { display: none; }
   body { padding: 0 .25in; color: black; background: white; }
 }
@@ -287,4 +310,9 @@ ol.sources li { margin: .15rem 0; }
 @media (max-width: 480px) {
   body { padding: 0 .75rem 6rem; }
   h1 { font-size: 1.3rem; }
+  ul.recipe-list li { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .multiplier {
+    grid-column: 2 / -1;
+    justify-self: end;
+  }
 }

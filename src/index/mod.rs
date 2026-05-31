@@ -7,7 +7,6 @@ use scan::{parse_recipe_path, RecipeFileMeta, VersionKey};
 pub use slug::Slug;
 
 use anyhow::Result;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -91,16 +90,35 @@ impl Index {
         v
     }
 
-    pub fn families_by_category(&self) -> BTreeMap<String, Vec<&RecipeFamily>> {
-        let mut map: BTreeMap<String, Vec<&RecipeFamily>> = BTreeMap::new();
+    pub fn families_by_category(&self) -> Vec<(String, Vec<&RecipeFamily>)> {
+        let mut map: HashMap<String, Vec<&RecipeFamily>> = HashMap::new();
         for f in self.families.values() {
             map.entry(f.category.clone()).or_default().push(f);
         }
         for vs in map.values_mut() {
             vs.sort_by_key(|a| a.title.to_lowercase());
         }
-        map
+        let mut groups: Vec<_> = map.into_iter().collect();
+        groups.sort_by(|(a, _), (b, _)| category_sort_key(a).cmp(&category_sort_key(b)));
+        groups
     }
+}
+
+fn category_sort_key(category: &str) -> (u8, String) {
+    let first = category
+        .split('/')
+        .next()
+        .unwrap_or(category)
+        .trim()
+        .to_ascii_lowercase();
+    let priority = match first.as_str() {
+        "breakfast" | "breakfasts" => 0,
+        "lunch" | "lunches" => 1,
+        "snack" | "snacks" => 2,
+        "dinner" | "dinners" | "main" | "mains" => 3,
+        _ => 4,
+    };
+    (priority, category.to_ascii_lowercase())
 }
 
 /// Walk `root`, parse every `.cook`, build an Index. Errors are collected, not fatal.

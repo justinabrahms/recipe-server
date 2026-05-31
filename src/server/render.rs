@@ -130,8 +130,12 @@ pub fn list_page(layout: Layout, idx: &Index) -> String {
                 write!(
                     body,
                     r#"<li class="recipe" data-search-text="{search}" data-slug="{slug}">
-  <input type="checkbox" name="slugs[]" value="{slug}">
+  <input type="checkbox" class="recipe-select" name="slugs[]" value="{slug}" aria-label="Select {title}">
   <span class="row-title"><a href="{href}">{title}</a> <span class="tag">{ver}</span></span>
+  <label class="made-toggle">
+    <input type="checkbox" data-made-toggle data-slug="{slug}" aria-label="Mark {title} as made">
+    <span>Made</span>
+  </label>
   <span class="multiplier" hidden>
     <button type="button" class="step-down" aria-label="decrease">−</button>
     <output class="step-value">1</output>×
@@ -174,9 +178,14 @@ pub fn recipe_view(layout: Layout, family: &RecipeFamily, version_idx: usize) ->
   Version <strong>{ver}</strong>
   {current_note}
   · <a href="{history}">History ({count})</a>
+  · <label class="made-toggle inline">
+      <input type="checkbox" data-made-toggle data-slug="{slug}" aria-label="Mark {title} as made">
+      <span>Made</span>
+    </label>
 </p>
 "#,
         title = esc(&family.title),
+        slug = esc(family.slug.as_str()),
         ver = esc(&v.key.to_string()),
         current_note = if is_current {
             "<span class=\"tag\">current</span>"

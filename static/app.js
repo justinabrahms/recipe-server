@@ -1,3 +1,49 @@
+// Recipe made-state toggles. This is deliberately browser-local; the server
+// remains read-only against the Cooklang recipe directory.
+(function () {
+  const toggles = Array.from(document.querySelectorAll('[data-made-toggle][data-slug]'));
+  if (toggles.length === 0) return;
+
+  const keyFor = (slug) => `recipe-server:made:${slug}`;
+
+  function readMade(slug) {
+    try {
+      return window.localStorage.getItem(keyFor(slug)) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function writeMade(slug, made) {
+    try {
+      if (made) {
+        window.localStorage.setItem(keyFor(slug), '1');
+      } else {
+        window.localStorage.removeItem(keyFor(slug));
+      }
+    } catch (_) {}
+  }
+
+  function syncSlug(slug, made) {
+    toggles.forEach((toggle) => {
+      if (toggle.dataset.slug === slug) toggle.checked = made;
+    });
+    document.querySelectorAll('li.recipe[data-slug]').forEach((li) => {
+      if (li.dataset.slug === slug) li.classList.toggle('made', made);
+    });
+  }
+
+  toggles.forEach((toggle) => {
+    syncSlug(toggle.dataset.slug, readMade(toggle.dataset.slug));
+    toggle.addEventListener('change', () => {
+      const slug = toggle.dataset.slug;
+      const made = toggle.checked;
+      writeMade(slug, made);
+      syncSlug(slug, made);
+    });
+  });
+})();
+
 // Recipe list page: live search filter + sticky action bar.
 (function () {
   const search = document.getElementById('search');
@@ -29,7 +75,7 @@
   function updateBar() {
     let total = 0;
     list.querySelectorAll('li.recipe').forEach((li) => {
-      const cb = li.querySelector('input[type=checkbox]');
+      const cb = li.querySelector('.recipe-select');
       if (cb && cb.checked) {
         const hidden = li.querySelector('input[name^="multiplier["]');
         const n = hidden ? parseInt(hidden.value || '1', 10) : 1;
@@ -47,7 +93,7 @@
 
   // Toggle the per-row multiplier stepper when the checkbox flips.
   function setStepperVisibility(li) {
-    const cb = li.querySelector('input[type=checkbox]');
+    const cb = li.querySelector('.recipe-select');
     const stepper = li.querySelector('.multiplier');
     if (!cb || !stepper) return;
     if (cb.checked) {
@@ -79,7 +125,7 @@
   }
 
   list.addEventListener('change', (e) => {
-    if (e.target.matches('input[type=checkbox]')) {
+    if (e.target.matches('.recipe-select')) {
       setStepperVisibility(e.target.closest('li.recipe'));
       updateBar();
     }

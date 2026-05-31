@@ -33,3 +33,32 @@ fn discovers_unversioned_recipe_as_v1() {
     assert_eq!(fam.versions.len(), 1);
     assert_eq!(fam.current().key, VersionKey::V1);
 }
+
+#[test]
+fn groups_meal_categories_in_display_order() {
+    let dir = tempfile::tempdir().unwrap();
+    let recipes = [
+        ("dinners/stew.cook", ">> title: Stew\n\nCook @beans{}.\n"),
+        ("breakfast/oats.cook", ">> title: Oats\n\nCook @oats{}.\n"),
+        ("snacks/popcorn.cook", ">> title: Popcorn\n\nPop @corn{}.\n"),
+        ("lunch/salad.cook", ">> title: Salad\n\nToss @lettuce{}.\n"),
+        ("misc/water.cook", ">> title: Water\n\nPour @water{}.\n"),
+    ];
+    for (path, body) in recipes {
+        let path = dir.path().join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, body).unwrap();
+    }
+
+    let idx = build_index(dir.path()).unwrap();
+    let categories: Vec<_> = idx
+        .families_by_category()
+        .into_iter()
+        .map(|(category, _)| category)
+        .collect();
+
+    assert_eq!(
+        categories,
+        vec!["breakfast", "lunch", "snacks", "dinners", "misc"]
+    );
+}

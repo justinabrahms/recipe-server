@@ -37,7 +37,8 @@ async fn home_lists_all_families() {
     assert!(html.contains("Garlic Bread"));
     assert!(html.contains("/r/carbonara"));
     assert!(html.contains("/r/garlic-bread"));
-    assert!(html.contains(r#"name="slugs[]""#));
+    assert!(html.contains(r#"class="recipe-select" name="slugs[]""#));
+    assert!(html.contains(r#"data-made-toggle data-slug="carbonara""#));
 }
 
 #[tokio::test]
@@ -57,6 +58,7 @@ async fn recipe_view_shows_current_version() {
     assert!(html.contains("Spaghetti Carbonara"));
     assert!(html.contains("v2"));
     assert!(html.contains("guanciale"));
+    assert!(html.contains(r#"data-made-toggle data-slug="carbonara""#));
 }
 
 #[tokio::test]
