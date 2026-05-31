@@ -99,7 +99,7 @@ impl Index {
             vs.sort_by_key(|a| a.title.to_lowercase());
         }
         let mut groups: Vec<_> = map.into_iter().collect();
-        groups.sort_by(|(a, _), (b, _)| category_sort_key(a).cmp(&category_sort_key(b)));
+        groups.sort_by_key(|(category, _)| category_sort_key(category));
         groups
     }
 }

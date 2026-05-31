@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+if [ "${SKIP_PRE_PUSH_CHECKS:-}" = "1" ]; then
+    echo "Skipping pre-push checks because SKIP_PRE_PUSH_CHECKS=1"
+    exit 0
+fi
+
+if ! command -v rustup >/dev/null 2>&1; then
+    echo "pre-push: rustup is required to match GitHub CI's stable Rust toolchain" >&2
+    exit 1
+fi
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+if [ "${PRE_PUSH_SKIP_RUSTUP_UPDATE:-}" != "1" ]; then
+    echo "pre-push: updating Rust stable toolchain"
+    rustup update stable
+fi
+
+echo "pre-push: ensuring CI components are installed"
+rustup component add rustfmt clippy --toolchain stable
+
+echo "pre-push: cargo fmt --all -- --check"
+rustup run stable cargo fmt --all -- --check
+
+echo "pre-push: cargo clippy --all-targets -- -D warnings"
+rustup run stable cargo clippy --all-targets -- -D warnings
+
+echo "pre-push: cargo test --locked --all"
+rustup run stable cargo test --locked --all
